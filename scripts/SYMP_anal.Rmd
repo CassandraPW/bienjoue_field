@@ -36,8 +36,15 @@ score$speed <- (score$CR * 60000) / score$rt #Measure of speed (Correct response
 
 #Measure the distance effect, on the x-axis put the distance between the compared numbers and on the y-axis the RT
 time <- aggregate(rt~ rang+ID+dist, symp, sum)
+time$rang <- as.factor(time$rang)
+
 ggplot(time, aes(dist, rt, color=rang)) +
-  
+  stat_summary(fun.y = 'mean', geom = "point", size = 3.5) + 
+  stat_summary(fun.y = 'mean', geom = "line", aes(group = rang), linetype = "solid", size=.5) + 
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.1) +
+  ggtitle("Distance Effect")
+
+write.csv(time, 'data/clean/cleanSYMPData.csv', row.names = FALSE)
 ```
 
 
@@ -67,6 +74,11 @@ x$itemsTried<-x$Correct + x$Incorrect
 x$precision <- (x$Correct / x$itemsTried) *100 #Measure of precision correct responses / total responses *100
 x$readingSpeed <- (x$Correct * 60000)/x$rt #Measure of speed (Correct responses * 60000) / time to complete the activity
 x
-write.csv(x, "data/cleanReadingTests.csv", row.names = FALSE)
+
+colnames(x)[5]<-'readingrt'
+
+BJBehaviour <- merge(x, score)
+write.csv(x, "data/clean/cleanMinWordPseudoData.csv", row.names = FALSE)
 ```
+
 
