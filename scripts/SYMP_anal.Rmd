@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_knit$set(root.dir="/Users/cpotier/BienJoue/BJAnal")
 knitr::opts_chunk$set(warning=FALSE, message = FALSE)
 
-library(readr) ; library(ggplot2) ;  library(arsenal); library(plotly) ; library(ez) ; library(ggpubr) ; library(reshape2) ;  library(plyr) ; library(tidyr) ; library(dplyr) ; library(pander); library(gmodels); require(Hmisc) ; library(afex)
+library(readxl) ; library(readr) ; library(ggplot2) ;  library(arsenal); library(plotly) ; library(ez) ; library(ggpubr) ; library(reshape2) ;  library(plyr) ; library(tidyr) ; library(dplyr) ; library(pander); library(gmodels); require(Hmisc) ; library(afex)
 
 panderOptions('round', 3)
 panderOptions('keep.trailing.zeros', TRUE)
@@ -20,14 +20,24 @@ standarderror <- function(x) {sd(x, na.rm=T)/sqrt(sum(!is.na(x)))}
 
 ```{r}
 symp <- read_csv("data/mergedSympTests.csv") #One minute Symp Single digit
-# The number of correct button presses:
-aggregate(button_pressed~ID,symp,  sum)
-aggregate(rt~ID,symp,  sum)
+SympTest <- read_csv("data/SympTest.csv")
+subj <- read_excel("data/subjects.xlsx")
+symp$rang<-subj$subj_num[match(symp$ID, subj$test_code)] 
+symp <- merge(symp, SympTest)
 
-#Outcome measures.
-#Measure of precision correct responses / total responses
-#Measure of speed (Correct responses * 60000) / time to complete the activity
+symp$dist <- abs(symp$left-symp$right) # get the distance 
+symp$CR <- ifelse(pmax(symp$left, symp$right)==symp$button_pressed_text, 1,0) # Score
+
+#Outcome measures
+score<-aggregate(CR~ID,symp,  sum) # The number of correct button presses
+time <- aggregate(rt~ rang+ID, symp, sum)
+score <- merge(score, time)
+score$speed <- (score$CR * 60000) / score$rt #Measure of speed (Correct responses * 60000) / time to complete the activity
+
 #Measure the distance effect, on the x-axis put the distance between the compared numbers and on the y-axis the RT
+time <- aggregate(rt~ rang+ID+dist, symp, sum)
+ggplot(time, aes(dist, rt, color=rang)) +
+  
 ```
 
 
@@ -37,8 +47,8 @@ minWord <- read_csv("data/mergedMinWordTests.csv")
 minWord$testName<-'minWord'
 minPseudo <- read_csv("data/mergedMinPseudowordTests.csv")
 minPseudo$testName<-'minPseudo'
-library(readxl)
 subj <- read_excel("data/subjects.xlsx")
+
 
 min<-rbind(minWord, minPseudo)
 min$stimulus<-gsub("<span class=stimul>", "", min$stimulus)
