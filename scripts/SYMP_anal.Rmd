@@ -1,0 +1,62 @@
+---
+title: "Number Comparison Analysis"
+author: "Cassandra PW"
+date: "9/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir="/Users/cpotier/BienJoue/BJAnal")
+knitr::opts_chunk$set(warning=FALSE, message = FALSE)
+
+library(readr) ; library(ggplot2) ;  library(arsenal); library(plotly) ; library(ez) ; library(ggpubr) ; library(reshape2) ;  library(plyr) ; library(tidyr) ; library(dplyr) ; library(pander); library(gmodels); require(Hmisc) ; library(afex)
+
+panderOptions('round', 3)
+panderOptions('keep.trailing.zeros', TRUE)
+
+standarderror <- function(x) {sd(x, na.rm=T)/sqrt(sum(!is.na(x)))}
+```
+
+
+```{r}
+symp <- read_csv("data/mergedSympTests.csv") #One minute Symp Single digit
+# The number of correct button presses:
+aggregate(button_pressed~ID,symp,  sum)
+aggregate(rt~ID,symp,  sum)
+
+#Outcome measures.
+#Measure of precision correct responses / total responses
+#Measure of speed (Correct responses * 60000) / time to complete the activity
+#Measure the distance effect, on the x-axis put the distance between the compared numbers and on the y-axis the RT
+```
+
+
+# One minute word and pseudoword test
+```{r}
+minWord <- read_csv("data/mergedMinWordTests.csv")
+minWord$testName<-'minWord'
+minPseudo <- read_csv("data/mergedMinPseudowordTests.csv")
+minPseudo$testName<-'minPseudo'
+library(readxl)
+subj <- read_excel("data/subjects.xlsx")
+
+min<-rbind(minWord, minPseudo)
+min$stimulus<-gsub("<span class=stimul>", "", min$stimulus)
+min$stimulus<-gsub("</span>", "", min$stimulus)
+min$rang<-subj$subj_num[match(min$ID, subj$test_code)]
+
+x<-as.data.frame(table(min$rang, min$button_pressed_text, min$testName))
+x<-spread(x, Var2, Freq)
+colnames(x)[1]<-"rang"
+colnames(x)[2]<-"testName"
+
+idrt <- aggregate(rt~ rang+testName, min, sum)
+x <- merge(x, idrt)
+
+x$itemsTried<-x$Correct + x$Incorrect
+x$precision <- (x$Correct / x$itemsTried) *100 #Measure of precision correct responses / total responses *100
+x$readingSpeed <- (x$Correct * 60000)/x$rt #Measure of speed (Correct responses * 60000) / time to complete the activity
+x
+write.csv(x, "data/cleanReadingTests.csv", row.names = FALSE)
+```
+
