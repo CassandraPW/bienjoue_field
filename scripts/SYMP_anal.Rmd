@@ -79,6 +79,19 @@ colnames(x)[5]<-'readingrt'
 
 BJBehaviour <- merge(x, score)
 write.csv(x, "data/clean/cleanMinWordPseudoData.csv", row.names = FALSE)
+
+cor<-aggregate(readingSpeed~rang, x, mean)
+cor <- merge(cor, score[,c('rang', 'speed')])
+colnames(cor)[3]<-'numbercomparisonSpeed'
+cor
+
+modellm<-lm(numbercomparisonSpeed~readingSpeed, cor)
+summary(modellm)
+ggplot(cor, aes(readingSpeed, numbercomparisonSpeed)) +
+  geom_point() +
+  geom_smooth(method='lm', alpha=0.1, fill="blue") +
+  annotate("text", x = 100, y = 100, label = paste0("R Squared = ", summary(modellm)$r.squared)) +
+  ggtitle("Relationship between reading and number comparison")
 ```
 
 
