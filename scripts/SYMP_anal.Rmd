@@ -19,8 +19,8 @@ standarderror <- function(x) {sd(x, na.rm=T)/sqrt(sum(!is.na(x)))}
 
 
 ```{r}
-symp <- read_csv("data/mergedSympTests.csv") #One minute Symp Single digit
-SympTest <- read_csv("data/SympTest.csv")
+symp <- read_csv("data/mergedSympTests.csv") 
+SympTest <- read_csv("data/SympTest.csv") #One minute Symp Single digit
 subj <- read_excel("data/subjects.xlsx")
 symp$rang<-subj$subj_num[match(symp$ID, subj$test_code)] 
 symp <- merge(symp, SympTest)
@@ -29,13 +29,15 @@ symp$dist <- abs(symp$left-symp$right) # get the distance
 symp$CR <- ifelse(pmax(symp$left, symp$right)==symp$button_pressed_text, 1,0) # Score
 
 #Outcome measures
-score<-aggregate(CR~ID,symp,  sum) # The number of correct button presses
-time <- aggregate(rt~ rang+ID, symp, sum)
+score<-aggregate(CR~rang,symp,  sum) # The number of correct button presses
+time <- aggregate(rt~ rang, symp, sum) #Nobody should be over 1 min
 score <- merge(score, time)
-score$speed <- (score$CR * 60000) / score$rt #Measure of speed (Correct responses * 60000) / time to complete the activity
+# Fix 301 and 302 have greater than possible RT...this is because the software did not stop at 1 min.
+
+score$numbercomparisonSpeed <- (score$CR * 60000) / score$rt #Measure of speed (Correct responses * 60000) / time to complete the activity
 
 #Measure the distance effect, on the x-axis put the distance between the compared numbers and on the y-axis the RT
-time <- aggregate(rt~ rang+ID+dist, symp, sum)
+time <- aggregate(rt~ rang+dist, symp[symp$CR==1, ], sum)
 time$rang <- as.factor(time$rang)
 
 ggplot(time, aes(dist, rt, color=rang)) +
@@ -44,7 +46,8 @@ ggplot(time, aes(dist, rt, color=rang)) +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.1) +
   ggtitle("Distance Effect")
 
-write.csv(time, 'data/clean/cleanSYMPData.csv', row.names = FALSE)
+write.csv(time, 'data/clean/cleanDistSYMPData.csv', row.names = FALSE)
+write.csv(score, 'data/clean/cleanNCRateSYMPData.csv', row.names = FALSE)
 ```
 
 
@@ -81,12 +84,14 @@ BJBehaviour <- merge(x, score)
 write.csv(x, "data/clean/cleanMinWordPseudoData.csv", row.names = FALSE)
 
 cor<-aggregate(readingSpeed~rang, x, mean)
-cor <- merge(cor, score[,c('rang', 'speed')])
-colnames(cor)[3]<-'numbercomparisonSpeed'
+cor <- merge(cor, score[,c('rang', 'numbercomparisonSpeed')])
 cor
+
+write.csv(cor, 'data/clean/cleanReadNumberData.csv', row.names = FALSE)
 
 modellm<-lm(numbercomparisonSpeed~readingSpeed, cor)
 summary(modellm)
+
 ggplot(cor, aes(readingSpeed, numbercomparisonSpeed)) +
   geom_point() +
   geom_smooth(method='lm', alpha=0.1, fill="blue") +
